@@ -1,7 +1,8 @@
 # Database
 
-TypeORM 0.3 + PostgreSQL. Reviewed migrations only — `synchronize` is
-**off** in every environment.
+TypeORM 0.3 + PostgreSQL. Test and production change the schema only
+through reviewed migrations, applied on boot. `synchronize` is on solely
+for the development runtime, so entity edits reach the local DB at once.
 
 ## What lives here
 
@@ -94,7 +95,7 @@ generated statements — for example the unique user-search indexes in
 
 ## Anti-patterns
 
-- `synchronize: true` — never. Reviewed migrations only.
+- `synchronize: true` outside development — never. Reviewed migrations only.
 - Editing a migration that has already run on a shared environment —
   add a new one instead.
 - Skipping `scopeToConnectionSchema` because it "worked locally" — your

@@ -42,7 +42,6 @@ import { CitiesModule } from 'modules/cities/cities.module';
 import { OtpsModule } from 'modules/otps/otps.module';
 import { RefreshTokensModule } from 'modules/refresh-tokens/refresh-tokens.module';
 import { UsersModule } from 'modules/users/users.module';
-import { WhatsappModule } from 'modules/whatsapp/whatsapp.module';
 import { AppI18nModule } from 'infrastructure/i18n';
 import { PushNotificationModule } from 'infrastructure/notifications';
 import { StorageModule } from 'infrastructure/storage';
@@ -83,7 +82,6 @@ import { AppThrottleModule } from './infrastructure/throttle';
     CitiesModule,
     AreasModule,
     UsersModule,
-    WhatsappModule,
   ],
 
   controllers: [AppController],

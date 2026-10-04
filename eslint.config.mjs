@@ -29,13 +29,4 @@ export default defineConfig([
       ],
     },
   },
-  {
-    // Baileys exposes a loosely-typed, dynamically-loaded socket/auth surface;
-    // pinning exact types here would mean re-deriving the library's internals.
-    files: [
-      'src/modules/whatsapp/services/whatsapp.service.ts',
-      'src/modules/whatsapp/utils/baileys-auth-state.util.ts',
-    ],
-    rules: { '@typescript-eslint/no-explicit-any': 'off' },
-  },
 ]);

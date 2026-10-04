@@ -191,7 +191,6 @@ const TranslationKeys = {
   'user.errors.phone_taken': 'user.errors.phone_taken',
   'user.errors.profile_already_completed': 'user.errors.profile_already_completed',
   'user.errors.profile_not_completed': 'user.errors.profile_not_completed',
-  'whatsapp.errors.stub_mode': 'whatsapp.errors.stub_mode',
 } as const;
 
 export type TranslationKey = keyof typeof TranslationKeys;
@@ -268,5 +267,4 @@ export interface TranslationInterpolations {
   'user.errors.phone_taken': NoParams;
   'user.errors.profile_already_completed': NoParams;
   'user.errors.profile_not_completed': NoParams;
-  'whatsapp.errors.stub_mode': NoParams;
 }

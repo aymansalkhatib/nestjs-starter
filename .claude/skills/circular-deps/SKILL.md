@@ -10,7 +10,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 The module graph is a **DAG**: `feature → shared/lookup`, never back (CLAUDE.md "Dependency direction"). A cycle means an edge points the wrong way — re-cut the layering, don't freeze it with `forwardRef`.
 
-One-way edges today: `areas→cities`, `users→{cities,otps,refresh-tokens}`, `admins→refresh-tokens`, `whatsapp` standalone.
+One-way edges today: `areas→cities`, `users→{cities,otps,refresh-tokens}`, `admins→refresh-tokens`.
 
 ## Modes
 - `<ModuleA> <ModuleB>` — break the named cycle.
