@@ -108,14 +108,16 @@ tokens or OTP codes.
 
 - `TransformInterceptor` — wraps successful responses as
   `{ data, pagination? }`.
-- `SnakeCaseInterceptor` — converts response keys to snake_case.
+- `SnakeCaseInterceptor` — converts response keys to snake_case when the
+  request sends `X-Case-Format: snake`.
 - `UtcDateSerializerInterceptor` — every `Date` is serialized as a UTC
   ISO-8601 string. The process is forced into UTC in `main.ts`.
 
 ## Middlewares
 
-- `CamelCaseMiddleware` — converts request bodies from snake_case to
-  camelCase before class-validator runs. Bodies accept either case.
+- `CamelCaseMiddleware` — with `X-Case-Format: snake`, converts the request
+  body, query, and params from snake_case to camelCase before
+  class-validator runs. Without the header, requests must be camelCase.
 - `ParseQueryMiddleware` — normalizes query parsing (arrays via repeated
   keys, booleans).
 
