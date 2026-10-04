@@ -10,11 +10,9 @@ import { OtpIssueResult } from '../dto/otp-issue-result.dto';
 import { OtpPurpose } from '../enums/otp-purpose.enum';
 import { OtpRepository } from '../repositories/otp.repository';
 
-// Upper bound on the WhatsApp dispatch phase. The production notifier already
-// delegates to WhatsappQueueService (non-blocking), so this limit only fires
-// if a future notifier implementation blocks. On timeout, the code is still
-// valid in the DB and the caller receives a dispatchWarning — same path as a
-// connection failure.
+// Upper bound on the dispatch phase, so a slow or hanging notifier can never
+// stall the request. On timeout, the code is still valid in the DB and the
+// caller receives a dispatchWarning — same path as a delivery failure.
 const DISPATCH_TIMEOUT_MS = 5_000;
 
 /**

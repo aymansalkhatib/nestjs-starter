@@ -94,7 +94,7 @@ caller can clean up dead tokens (e.g. delete rows with code
    `sendToTopic`, `subscribeToTopic`, `unsubscribeFromTopic`).
 2. Bind it to the `NOTIFICATION_PROVIDER` token in
    [push-notification.module.ts](push-notification.module.ts) (factory
-   that selects driver by env, mirroring the WhatsApp module).
+   that selects the driver by env).
 3. Add any new env vars to
    [../config/schemas/notifications.schema.ts](../config/schemas/notifications.schema.ts).
 

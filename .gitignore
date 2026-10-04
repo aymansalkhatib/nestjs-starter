@@ -68,11 +68,6 @@ merged_output.txt
 .kiro
 .vscode
 
-# WhatsApp Baileys session credentials (contains device-pairing data,
-# never commit — re-pair via /v1/whatsapp/qr if lost).
-.wa-auth.json
-.wa-auth/
-
 # Documentation (generated guides)
 /docs/
 K8S-COMPLETE-GUIDE.md

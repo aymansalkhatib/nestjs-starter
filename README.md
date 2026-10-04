@@ -4,7 +4,7 @@
 
 **A production-ready [NestJS](https://nestjs.com) 11 + PostgreSQL boilerplate for secure REST APIs.**
 
-JWT auth with refresh-token rotation, role-based access control, Arabic/English i18n, file storage, WhatsApp OTP, push notifications, rate limiting, Zod-validated config, and reviewed TypeORM migrations — so a new backend starts on solid foundations instead of a blank `main.ts`.
+JWT auth with refresh-token rotation, role-based access control, Arabic/English i18n, file storage, phone OTP login, push notifications, rate limiting, Zod-validated config, and reviewed TypeORM migrations — so a new backend starts on solid foundations instead of a blank `main.ts`.
 
 [![CI](https://github.com/aymansalkhatib/nestjs-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/aymansalkhatib/nestjs-starter/actions/workflows/ci.yml)
 [![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
@@ -17,7 +17,7 @@ JWT auth with refresh-token rotation, role-based access control, Arabic/English 
 
 </div>
 
-> **Reusable base project.** The shipped feature modules (admins, users, cities, areas, OTPs, refresh tokens, WhatsApp) are intentionally small and generic — they demonstrate the conventions for auth, lookups, and CRUD. Replace them with your own domain; the entire `infrastructure/` layer is reusable as-is. See [Make it yours](#make-it-yours).
+> **Reusable base project.** The shipped feature modules (admins, users, cities, areas, OTPs, refresh tokens) are intentionally small and generic — they demonstrate the conventions for auth, lookups, and CRUD. Replace them with your own domain; the entire `infrastructure/` layer is reusable as-is. See [Make it yours](#make-it-yours).
 
 ## Table of Contents
 
@@ -39,11 +39,11 @@ JWT auth with refresh-token rotation, role-based access control, Arabic/English 
 
 ## Features
 
-- 🔐 **Authentication & sessions** — Admin (username + password) and User (phone + WhatsApp OTP) flows. Short-lived JWT access tokens (HS256 pinned) plus **opaque, hashed, DB-backed refresh tokens with rotation and reuse/theft detection**.
+- 🔐 **Authentication & sessions** — Admin (username + password) and User (phone + OTP) flows, with OTP delivery behind a notifier interface (a mock is included). Short-lived JWT access tokens (HS256 pinned) plus **opaque, hashed, DB-backed refresh tokens with rotation and reuse/theft detection**.
 - 🛡️ **Role-based access control** — one `@Protected(Role.X)` decorator and a resolver registry. The global guard is **fail-closed** (every route needs a token unless marked `@Public()`), hydrates the principal without any feature module importing another's repository, and enforces a soft `is_active` account gate.
 - 🌍 **i18n out of the box** — Arabic + English via `nestjs-i18n`, with a **type-safe, auto-generated translation-key union** and localized validation messages.
 - 📦 **File storage abstraction** — local filesystem or Supabase, signed URLs for private files, **magic-byte content validation**, and Sharp-based image processing.
-- 🔔 **Notifications** — Firebase Cloud Messaging push + WhatsApp (Baileys), with a stub driver that logs messages in development.
+- 🔔 **Push notifications** — Firebase Cloud Messaging, with a no-op driver when Firebase isn't configured.
 - 🚦 **Rate limiting** — a global per-IP limit plus stricter named throttlers for auth and upload routes, shared across instances through Redis when `CACHE_DRIVER=redis`.
 - ✅ **Validated configuration** — every environment variable is parsed and validated by **Zod** at boot; the app refuses to start on missing or malformed values.
 - 🗃️ **Reviewed migrations** — schema-scoped TypeORM migrations that test and production apply automatically on boot.
@@ -62,7 +62,7 @@ JWT auth with refresh-token rotation, role-based access control, Arabic/English 
 - **JWT** access tokens (`jsonwebtoken`, HS256 pinned) + opaque refresh-token rotation
 - **[class-validator](https://github.com/typestack/class-validator)** with localized error messages
 - **Storage**: local FS or **[Supabase](https://supabase.com)** (signed URLs for private files), **[Sharp](https://sharp.pixelplumbing.com)** image processing
-- **Notifications**: **[Firebase Admin](https://firebase.google.com/docs/admin/setup)** push + **WhatsApp ([Baileys](https://github.com/WhiskeySockets/Baileys))** with a stub driver for dev
+- **Notifications**: **[Firebase Admin](https://firebase.google.com/docs/admin/setup)** push; OTP delivery through a pluggable notifier (mock included)
 - **[Helmet](https://helmetjs.github.io) + compression + CORS + body limits + trust-proxy** wired in `bootstrap/`
 - **[Jest](https://jestjs.io)** unit + e2e, **[ESLint](https://eslint.org)** + **[Prettier](https://prettier.io)**
 
@@ -119,7 +119,7 @@ curl -X POST http://localhost:3000/api/v1/auth/admin/login \
 
 Send the access token as `Authorization: Bearer <accessToken>` to call protected routes such as `GET /api/v1/admin/me`.
 
-Users sign in with a WhatsApp OTP. In development the stub driver logs the code instead of sending it, and `OTP_FIXED_CODE=000000` keeps it predictable:
+Users sign in with a phone OTP. The starter ships a mock sender that writes the code to the server log instead of sending it, and in development `OTP_FIXED_CODE=000000` keeps it predictable:
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/user/otp/request \
@@ -133,18 +133,17 @@ curl -X POST http://localhost:3000/api/v1/auth/user/otp/verify \
 
 Feature routes are versioned under `/api/v1`; the paths below are relative to it. Health probes (`GET /healthz`, `GET /healthz/ready`) and local file serving (`/storage/...`) sit outside the prefix.
 
-| Area                     | Endpoints                                                                                         | Access                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------- | ---------------------- |
-| Admin auth               | `POST /auth/admin/login`                                                                          | Public                 |
-| User auth (WhatsApp OTP) | `POST /auth/user/otp/request` · `POST /auth/user/otp/verify`                                      | Public                 |
-| Sessions                 | `POST /auth/refresh` · `POST /auth/logout`                                                        | Public (refresh token) |
-| Admin profile            | `GET /admin/me` · `PATCH /admin/me` · `POST /admin/me/photo`                                      | Admin                  |
-| User profile             | `GET /user/me` · `PATCH /user/me` · `POST /user/me/photo` · `POST /user/me/complete-profile`      | User                   |
-| User management          | `GET /admin/users` · `POST /admin/users` · `GET /admin/users/:id`                                 | Admin                  |
-|                          | `PATCH /admin/users/:id/activate` · `PATCH /admin/users/:id/deactivate`                           | Admin                  |
-| Cities & areas           | `GET /cities` · `GET /cities/:id` — same for `/areas`                                             | Public                 |
-|                          | `POST /cities/admin` · `PATCH /cities/admin/:id` · `DELETE /cities/admin/:id` — same for `/areas` | Admin                  |
-| WhatsApp session         | `GET /admin/whatsapp/{qr,status}` · `POST /admin/whatsapp/{send,logout}`                          | Admin                  |
+| Area                  | Endpoints                                                                                         | Access                 |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ---------------------- |
+| Admin auth            | `POST /auth/admin/login`                                                                          | Public                 |
+| User auth (phone OTP) | `POST /auth/user/otp/request` · `POST /auth/user/otp/verify`                                      | Public                 |
+| Sessions              | `POST /auth/refresh` · `POST /auth/logout`                                                        | Public (refresh token) |
+| Admin profile         | `GET /admin/me` · `PATCH /admin/me` · `POST /admin/me/photo`                                      | Admin                  |
+| User profile          | `GET /user/me` · `PATCH /user/me` · `POST /user/me/photo` · `POST /user/me/complete-profile`      | User                   |
+| User management       | `GET /admin/users` · `POST /admin/users` · `GET /admin/users/:id`                                 | Admin                  |
+|                       | `PATCH /admin/users/:id/activate` · `PATCH /admin/users/:id/deactivate`                           | Admin                  |
+| Cities & areas        | `GET /cities` · `GET /cities/:id` — same for `/areas`                                             | Public                 |
+|                       | `POST /cities/admin` · `PATCH /cities/admin/:id` · `DELETE /cities/admin/:id` — same for `/areas` | Admin                  |
 
 For ready-made requests, import [`postman/collections/nest-starter.postman_collection.json`](postman/collections/nest-starter.postman_collection.json) into Postman, set `base_url`, and log in — the collection stores the returned tokens for you. Each feature module also ships its own collection under `src/modules/*/postman/`.
 
@@ -198,7 +197,7 @@ Each infrastructure subfolder ships its own short README:
 - [infrastructure/notifications/](src/infrastructure/notifications/README.md) — Firebase push
 - [infrastructure/storage/](src/infrastructure/storage/README.md) — file uploads (local / Supabase)
 - [infrastructure/throttle/](src/infrastructure/throttle/README.md) — global + auth rate limiting
-- [infrastructure/whatsapp-client/](src/infrastructure/whatsapp-client/README.md) — WhatsApp notifier (Baileys / stub)
+- [infrastructure/whatsapp-client/](src/infrastructure/whatsapp-client/README.md) — OTP delivery seam (mock included)
 - [scripts/](src/scripts/README.md) — i18n validation + seed pipeline
 
 ## Conventions
@@ -250,7 +249,6 @@ A few that almost always need attention before a fresh deploy:
 | `TRUST_PROXY`       | Hops behind a reverse proxy. Must be correct for rate-limit IPs to work      |
 | `STORAGE_DRIVER`    | `local` or `supabase`                                                        |
 | `CACHE_DRIVER`      | `noop` or `redis` — `redis` also shares rate-limit counters across instances |
-| `WHATSAPP_DRIVER`   | `stub` (logs messages) or `baileys` (a real WhatsApp session)                |
 
 For production, copy `env/.env.production.example` to `env/.env.production` and replace every `CHANGE_ME_*` placeholder.
 
@@ -302,7 +300,7 @@ npm run test:e2e    # e2e tests (the Postgres-backed suite runs with RUN_DB_E2E=
 ```
 
 - **409 unit tests** covering services, guards, the refresh-token rotation/reuse logic, OTP lockout, validators, decorators, interceptors, middlewares, filters, pagination, cache, and utilities.
-- **~95% line coverage** on the unit-tested logic layers, enforced by `coverageThreshold` in [package.json](package.json). Pure framework wiring, declarative DTOs/schemas, and integration-only adapters (storage providers, Firebase, Baileys) are scoped out of the unit-coverage gate and exercised by the e2e suite instead.
+- **~95% line coverage** on the unit-tested logic layers, enforced by `coverageThreshold` in [package.json](package.json). Pure framework wiring, declarative DTOs/schemas, and integration-only adapters (storage providers, Firebase) are scoped out of the unit-coverage gate and exercised by the e2e suite instead.
 - **E2E:** an infra-free HTTP-pipeline test runs anywhere. The full **auth-flow** test (admin login → refresh rotation → reuse detection → protected route) needs Postgres: CI runs it with `RUN_DB_E2E=1`, and you can too against a local database (settings come from `env/.env.test`).
 - **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs `lint:check`, `build`, `test:cov`, and the Postgres-backed e2e job on every push and pull request.
 
@@ -319,11 +317,12 @@ The container applies pending migrations when it starts.
 
 ## Make it yours
 
-1. Search for `TODO(per-project)` — the Postgres schema, JWT issuer/audience, and Redis key prefix in `env/`, plus the project header in `CLAUDE.md`.
+1. Search for `TODO(per-project)` — the Postgres schema, JWT issuer/audience, and Redis key prefix in `env/`, the OTP sender binding, and the project header in `CLAUDE.md`.
 2. Set `name`, `version`, and `description` in `package.json`; the landing page and `GET /api/info` display them.
 3. Replace the sample modules in `src/modules/` with your own domain; keep `infrastructure/` and `core/` as the foundation.
 4. The samples target Syria: OTP phone numbers are validated by `@SyriaPhone`, and the seeders load Syrian governorates and areas. Swap both for your market.
-5. Before deploying, create `env/.env.production` from the example and replace every `CHANGE_ME_*` value.
+5. OTP codes go through a mock that only writes them to the log. Bind a real sender, such as the official WhatsApp Cloud API, before going live — see [`infrastructure/whatsapp-client/`](src/infrastructure/whatsapp-client/README.md).
+6. Before deploying, create `env/.env.production` from the example and replace every `CHANGE_ME_*` value.
 
 ## Scripts
 

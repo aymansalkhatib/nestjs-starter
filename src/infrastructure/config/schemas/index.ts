@@ -8,4 +8,3 @@ export * from './security.schema';
 export * from './server.schema';
 export * from './storage.schema';
 export * from './throttle.schema';
-export * from './whatsapp.schema';

@@ -39,7 +39,7 @@ Purpose: reusable base project. TODO(per-project): replace this header and the p
 - Don't add `Logger` fields, `console.log`, or defensive `try/catch` in business logic.
   `Logger` is allowed only at four structurally necessary sites:
   1. Infrastructure filters (e.g. `GlobalExceptionFilter`) — last-resort error logging.
-  2. External-service catch sites where a soft-failure is architecturally required (e.g. `OtpService` WhatsApp dispatch, `WhatsappQueueService` per-message worker).
+  2. External-service catch sites where a soft-failure is architecturally required (e.g. `OtpService` WhatsApp dispatch).
   3. Security-event calls (e.g. refresh-token reuse detection in `RefreshTokenService`).
   4. Dev/stub providers (e.g. `StubWhatsAppNotifier`) that replace a real side-effect.
   Never add Logger to plain services, repositories, controllers, or middleware.

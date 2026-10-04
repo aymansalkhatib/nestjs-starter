@@ -30,7 +30,6 @@ because a secret was a typo.
   | `otp.schema.ts`         | OTP TTL / cooldown / lock window / attempt limits   |
   | `storage.schema.ts`     | `STORAGE_DRIVER` + local-only & supabase-only vars  |
   | `notifications.schema.ts`| `NOTIFICATIONS_FIREBASE_SERVICE_ACCOUNT`           |
-  | `whatsapp.schema.ts`    | `WHATSAPP_DRIVER` + queue tuning                    |
 
 - **`transformers/`** — small helpers used by schemas (e.g. parse
   `"true"`/`"false"` strings into booleans).

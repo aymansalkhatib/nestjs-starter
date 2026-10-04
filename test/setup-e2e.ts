@@ -9,7 +9,6 @@ process.env.NODE_ENV = 'test';
 
 // Force the deterministic / infra-free drivers for tests.
 process.env.CACHE_DRIVER = 'noop';
-process.env.WHATSAPP_DRIVER = 'stub';
 process.env.STORAGE_DRIVER = 'local';
 // Makes the OTP that the service persists predictable for the user-login flow.
 process.env.OTP_FIXED_CODE = process.env.OTP_FIXED_CODE ?? '000000';

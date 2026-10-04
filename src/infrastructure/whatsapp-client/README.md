@@ -1,42 +1,29 @@
 # WhatsApp Client
 
-Outbound WhatsApp messaging (OTP delivery). Feature code injects the
-`WHATSAPP_NOTIFIER` token and never touches Baileys directly. Extend
-`IWhatsAppNotifier` with more message types as your domain needs them.
+The OTP delivery seam. Feature code injects the `WHATSAPP_NOTIFIER` token
+and calls `IWhatsAppNotifier`, so the transport can change without touching
+any caller.
+
+The starter binds a **mock**: `StubWhatsAppNotifier` writes the code to the
+log and reports success, so no message leaves the server. Bind a real
+sender before going live (see the `TODO(per-project)` in
+[whatsapp.module.ts](whatsapp.module.ts)).
 
 ## Layers
 
-```
+```text
 Feature code (e.g. OtpService)
         │   IWhatsAppNotifier
         ▼
-WHATSAPP_NOTIFIER  ──►  BaileysWhatsAppNotifier  ──►  WhatsappQueueService
-                  │                                  (jittered FIFO, 3–8s spacing)
-                  └──►  StubWhatsAppNotifier       (dev / no-WhatsApp builds)
+WHATSAPP_NOTIFIER  ──►  StubWhatsAppNotifier  (logs the code)
 ```
 
 - **`interfaces/whatsapp-notifier.interface.ts`** — `IWhatsAppNotifier`
   contract: `sendOtp`. Add more methods here as your domain needs them.
-- **`providers/baileys-whatsapp.notifier.ts`** — real driver. Owns the
-  Arabic message copy; enqueues into `WhatsappQueueService`.
-- **`providers/stub-whatsapp.notifier.ts`** — logs and returns success;
-  no socket required.
+- **`providers/stub-whatsapp.notifier.ts`** — the mock. Logs
+  `[WA-STUB] otp phone=… code=…` and returns success.
 - **`constants/whatsapp.token.ts`** — `WHATSAPP_NOTIFIER` DI token.
-- **`whatsapp.module.ts`** — `@Global()`. Selects driver by env.
-
-> The Baileys **socket + queue worker + QR pairing controller** live in
-> the feature module [`src/modules/whatsapp/`](../../modules/whatsapp/),
-> because they own state (auth files, connection lifecycle, admin
-> endpoints). This `infrastructure/` layer is the thin notifier facade.
-
-## Configuration
-
-| Variable                       | Notes                                                          |
-| ------------------------------ | -------------------------------------------------------------- |
-| `WHATSAPP_DRIVER`              | `baileys` (real) or anything else (stub). Default: stub        |
-| `WHATSAPP_QUEUE_MIN_DELAY_MS`  | Lower bound of inter-message jitter                            |
-| `WHATSAPP_QUEUE_MAX_DELAY_MS`  | Upper bound of inter-message jitter                            |
-| `WHATSAPP_QUEUE_MAX_SIZE`      | Hard cap before `ServiceUnavailableException` on enqueue       |
+- **`whatsapp.module.ts`** — `@Global()`. Binds the token to the mock.
 
 ## Usage
 
@@ -46,37 +33,21 @@ constructor(@Inject(WHATSAPP_NOTIFIER) private readonly whatsapp: IWhatsAppNotif
 await this.whatsapp.sendOtp(phone, code);
 ```
 
-Each call returns `{ messageId, dispatchedAt }` — `messageId` is the
-queue ID, not a WhatsApp ack. Failures inside the worker are logged and
-skipped (no retries); see the service block comment in
-[whatsapp-queue.service.ts](../../modules/whatsapp/services/whatsapp-queue.service.ts)
-for the rationale.
+Each call returns `{ messageId, dispatchedAt }`. `OtpService` caps the call
+with a 5-second timeout: if the notifier throws or hangs, the code stays
+valid and the API response carries a `warning` asking the user to contact
+support.
 
-## Why the queue + jitter
+## Plugging in a real sender
 
-Burst sending gets a WhatsApp number banned. The queue:
+1. Implement `IWhatsAppNotifier` on an official API — Meta's
+   [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api)
+   (authentication templates) or a Business Solution Provider such as
+   Twilio.
+2. Bind it to `WHATSAPP_NOTIFIER` in [whatsapp.module.ts](whatsapp.module.ts).
+3. Add its credentials to a Zod schema in
+   [../config/schemas/](../config/schemas/) so the app refuses to boot
+   without them.
 
-- Sends the first message in an idle queue immediately.
-- Sleeps a random 3–8s **between** sends (jitter per message — fixed
-  cadences look bot-like).
-- Honors `lastSentAt` across worker idle/wake cycles so two enqueues
-  100ms apart can never skip the spacing rule.
-- Pre-checks socket connectivity at enqueue, so callers can surface a
-  soft "contact support" warning instead of queueing into the void.
-
-## Pairing a number
-
-The Baileys socket runs inside [`modules/whatsapp/`](../../modules/whatsapp/),
-which exposes admin endpoints to fetch the QR code and read connection
-status. State is persisted to disk between restarts.
-
-## Swapping the driver (Cloud API, MessageBird, Twilio, …)
-
-1. Implement `IWhatsAppNotifier`.
-2. Add a value to `WHATSAPP_DRIVER` in
-   [../config/schemas/whatsapp.schema.ts](../config/schemas/whatsapp.schema.ts).
-3. Route to the new provider inside the `WHATSAPP_NOTIFIER` factory in
-   [whatsapp.module.ts](whatsapp.module.ts).
-
-The interface keeps the message contract (e.g. `sendOtp`) stable so
-feature code is untouched when the underlying provider changes.
+Feature code stays untouched: the interface keeps the message contract
+(`sendOtp`) stable.

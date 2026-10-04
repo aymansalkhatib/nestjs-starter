@@ -14,7 +14,6 @@ import {
   serverSchema,
   storageSchema,
   throttleSchema,
-  whatsappSchema,
 } from './schemas';
 
 export const environmentSchema = z
@@ -29,7 +28,6 @@ export const environmentSchema = z
     ...cacheSchema.shape,
     ...storageSchema.shape,
     ...notificationsSchema.shape,
-    ...whatsappSchema.shape,
   })
   .superRefine(refineStorageConfig)
   .superRefine(refineOtpConfig)
