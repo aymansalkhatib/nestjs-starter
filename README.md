@@ -52,7 +52,6 @@ JWT auth with refresh-token rotation, role-based access control, Arabic/English 
 - 🧪 **Tested & CI-ready** — 409 unit tests at ~95% line coverage on the logic layers, an e2e suite with a Postgres-backed auth flow, and a GitHub Actions pipeline.
 - 🐳 **Deployable** — multi-stage Dockerfile (non-root, healthcheck) and helmet/CORS/compression/body-limit/trust-proxy hardening wired in `bootstrap/`.
 - 📮 **Postman collection** — every API endpoint with example bodies; tokens are captured automatically when you log in.
-- 🤖 **AI-assisted scaffolding** — a `CLAUDE.md` plus Claude Code skills that scaffold modules, endpoints, entities, i18n keys, and Postman collections in the house style.
 
 ## Tech Stack
 
@@ -322,7 +321,7 @@ The container applies pending migrations when it starts.
 
 1. Search for `TODO(per-project)` — the Postgres schema, JWT issuer/audience, and Redis key prefix in `env/`, plus the project header in `CLAUDE.md`.
 2. Set `name`, `version`, and `description` in `package.json`; the landing page and `GET /api/info` display them.
-3. Replace the sample modules in `src/modules/` with your own domain. The Claude Code skills in `.claude/skills/` scaffold new modules, entities, and endpoints in the same style.
+3. Replace the sample modules in `src/modules/` with your own domain; keep `infrastructure/` and `core/` as the foundation.
 4. The samples target Syria: OTP phone numbers are validated by `@SyriaPhone`, and the seeders load Syrian governorates and areas. Swap both for your market.
 5. Before deploying, create `env/.env.production` from the example and replace every `CHANGE_ME_*` value.
 
